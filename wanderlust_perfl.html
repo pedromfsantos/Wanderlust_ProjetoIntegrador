@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wanderlust - Protótipo Interativo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para Ícones Profissionais -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel para compilar JSX no browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Tipografia e Scrollbar */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        /* Animações suaves */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-200 flex items-center justify-center min-h-screen m-0">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Cores da Identidade Visual Oficial
+        const COLORS = {
+            primary: '#008770',
+            primaryHover: '#006B59',
+            secondary: '#1A2232',
+            background: '#F8FAFC',
+            white: '#FFFFFF',
+            textMain: '#1F2937',
+            textLight: '#64748B',
+            accent: '#22C55E'
+        };
+
+        const WanderlustApp = () => {
+            const [currentScreen, setCurrentScreen] = useState('splash');
+            const [userProfile, setUserProfile] = useState(null);
+
+            // --- COMPONENTES GLOBAIS ---
+            const PhoneFrame = ({ children }) => (
+                <div 
+                    className="relative overflow-hidden bg-white shadow-2xl flex flex-col"
+                    style={{ width: '375px', height: '812px', borderRadius: '45px', border: '12px solid #0F172A' }}
+                >
+                    {/* Notch do iPhone simulado */}
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-36 h-7 bg-[#0F172A] rounded-b-3xl z-50"></div>
+                    <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-[#F8FAFC]">
+                        {children}
+                    </div>
+                </div>
+            );
+
+            const BottomNav = ({ isPartner }) => (
+                <div className="flex justify-around items-center h-20 bg-white border-t border-gray-100 shrink-0 pb-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40">
+                    {isPartner ? (
+                        <>
+                            <button onClick={() => setCurrentScreen('partnerDashboard')} className={`flex flex-col items-center gap-1 ${currentScreen === 'partnerDashboard' ? 'text-[#008770]' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-chart-pie text-xl"></i>
+                                <span className="text-[10px] font-semibold">Métricas</span>
+                            </button>
+                            <button onClick={() => setCurrentScreen('partnerManage')} className={`flex flex-col items-center gap-1 ${currentScreen === 'partnerManage' ? 'text-[#008770]' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-store text-xl"></i>
+                                <span className="text-[10px] font-semibold">Meu Local</span>
+                            </button>
+                            <button className="flex flex-col items-center gap-1 text-gray-400">
+                                <i className="fa-solid fa-user text-xl"></i>
+                                <span className="text-[10px] font-semibold">Conta</span>
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button onClick={() => setCurrentScreen('travelerFeed')} className={`flex flex-col items-center gap-1 ${currentScreen === 'travelerFeed' ? 'text-[#008770]' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-house text-xl"></i>
+                                <span className="text-[10px] font-semibold">Início</span>
+                            </button>
+                            <button onClick={() => setCurrentScreen('planBasic')} className={`flex flex-col items-center gap-1 ${['planBasic', 'planPrefs', 'chatAI'].includes(currentScreen) ? 'text-[#008770]' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-wand-magic-sparkles text-xl"></i>
+                                <span className="text-[10px] font-semibold">Planejar</span>
+                            </button>
+                            <button onClick={() => setCurrentScreen('search')} className={`flex flex-col items-center gap-1 ${currentScreen === 'search' ? 'text-[#008770]' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-magnifying-glass text-xl"></i>
+                                <span className="text-[10px] font-semibold">Buscar</span>
+                            </button>
+                            <button onClick={() => setCurrentScreen('profile')} className={`flex flex-col items-center gap-1 ${currentScreen === 'profile' ? 'text-[#008770]' : 'text-gray-400'}`}>
+                                <i className="fa-solid fa-user text-xl"></i>
+                                <span className="text-[10px] font-semibold">Perfil</span>
+                            </button>
+                        </>
+                    )}
+                </div>
+            );
+
+            const Header = ({ title, showBack = true, onBack, subtitle }) => (
+                <div className="flex flex-col px-6 pt-14 pb-4 bg-white z-40 relative shadow-sm shrink-0">
+                    <div className="flex items-center">
+                        {showBack && (
+                            <button onClick={onBack} className="w-8 h-8 flex items-center justify-center mr-2 text-[#008770] rounded-full bg-teal-50">
+                                <i className="fa-solid fa-chevron-left text-sm"></i>
+                            </button>
+                        )}
+                        <div>
+                            <h1 className="text-lg font-bold text-[#1A2232]">{title}</h1>
+                            {subtitle && <p className="text-xs text-gray-500 font-medium">{subtitle}</p>}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // --- TELAS ---
+
+            // Tela 1: Splash
+            const ScreenSplash = () => (
+                <div 
+                    className="flex-1 flex flex-col items-center justify-center cursor-pointer fade-in"
+                    style={{ backgroundColor: COLORS.primary }}
+                    onClick={() => setCurrentScreen('profileSelect')}
+                >
+                    <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-lg">
+                        <i className="fa-solid fa-route text-4xl text-[#008770]"></i>
+                    </div>
+                    <h1 className="text-4xl font-bold text-white tracking-wide mb-2">Wanderlust</h1>
+                    <p className="text-white text-sm opacity-90 font-medium mb-12">Seu roteiro mágico começa aqui</p>
+                    
+                    <div className="absolute bottom-12 flex flex-col items-center">
+                        <i className="fa-solid fa-circle-notch fa-spin text-white text-2xl opacity-80 mb-4"></i>
+                        <p className="text-white text-xs opacity-70 font-medium">Toque na tela para iniciar</p>
+                    </div>
+                </div>
+            );
+
+            // Tela 2: Seleção de Perfil
+            const ScreenProfileSelect = () => (
+                <div className="flex-1 flex flex-col p-6 pt-24 bg-[#F8FAFC] fade-in overflow-hidden">
+                    <h2 className="text-3xl font-bold text-[#1A2232] mb-2">Boas-vindas!</h2>
+                    <p className="text-gray-500 text-sm mb-10 font-medium">Como você quer usar o Wanderlust hoje?</p>
+
+                    <button 
+                        onClick={() => { setUserProfile('traveler'); setCurrentScreen('travelerFeed'); }}
+                        className="flex items-center p-6 rounded-3xl mb-5 transition-transform active:scale-95 shadow-md relative overflow-hidden"
+                        style={{ backgroundColor: COLORS.primary }}
+                    >
+                        <div className="absolute -right-4 -top-4 opacity-10">
+                            <i className="fa-solid fa-plane text-8xl"></i>
+                        </div>
+                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mr-5 backdrop-blur-sm">
+                            <i className="fa-solid fa-plane text-2xl text-white"></i>
+                        </div>
+                        <div className="text-left text-white z-10">
+                            <div className="font-bold text-xl mb-1">Sou Viajante</div>
+                            <div className="text-xs opacity-90 font-medium leading-relaxed">Quero planejar e viver <br/>minha próxima viagem.</div>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={() => { setUserProfile('partner'); setCurrentScreen('partnerDashboard'); }}
+                        className="flex items-center p-6 rounded-3xl transition-transform active:scale-95 shadow-md relative overflow-hidden"
+                        style={{ backgroundColor: COLORS.secondary }}
+                    >
+                        <div className="absolute -right-4 -top-4 opacity-5">
+                            <i className="fa-solid fa-shop text-8xl"></i>
+                        </div>
+                        <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mr-5 backdrop-blur-sm border border-white/10">
+                            <i className="fa-solid fa-store text-2xl text-white"></i>
+                        </div>
+                        <div className="text-left text-white z-10">
+                            <div className="font-bold text-xl mb-1">Sou Parceiro</div>
+                            <div className="text-xs opacity-90 font-medium leading-relaxed">Quero gerenciar meu local <br/>e analisar métricas.</div>
+                        </div>
+                    </button>
+                </div>
+            );
+
+            // Tela 3: Feed do Viajante
+            const ScreenTravelerFeed = () => (
+                <div className="flex-1 flex flex-col bg-[#F8FAFC] fade-in overflow-hidden">
+                    <div className="px-6 pt-16 pb-8 bg-[#1A2232] rounded-b-[40px] shadow-lg z-10 shrink-0">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">Olá, Fulano!</h2>
+                                <p className="text-gray-300 text-sm mt-1">Pronto para a aventura?</p>
+                            </div>
+                            <div onClick={() => setCurrentScreen('profile')} className="w-12 h-12 bg-gradient-to-br from-[#008770] to-[#005c4c] rounded-full flex items-center justify-center border-2 border-white cursor-pointer shadow-md">
+                                <span className="text-white font-bold text-lg">F</span>
+                            </div>
+                        </div>
+                        
+                        {/* Card Principal CTA */}
+                        <div className="bg-white p-5 rounded-3xl shadow-md">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="font-bold text-[#1A2232] text-base">Nova Viagem</h3>
+                                    <p className="text-xs text-gray-500 font-medium mt-1">IA monta o roteiro ideal</p>
+                                </div>
+                                <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center">
+                                    <i className="fa-solid fa-wand-magic-sparkles text-[#008770]"></i>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setCurrentScreen('planBasic')}
+                                className="w-full py-3.5 rounded-2xl text-white font-semibold text-sm flex justify-center items-center gap-2 transition-transform active:scale-95 shadow-sm"
+                                style={{ backgroundColor: COLORS.primary }}
+                            >
+                                Iniciar Planejamento
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="flex justify-between items-end mb-4">
+                            <h3 className="font-bold text-[#1A2232] text-lg">Suas Viagens</h3>
+                            <span className="text-[#008770] text-xs font-bold">Ver todas</span>
+                        </div>
+                        
+                        {/* Item de Viagem */}
+                        <div 
+                            onClick={() => setCurrentScreen('itinerary')}
+                            className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4 cursor-pointer transition-transform active:scale-95"
+                        >
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold bg-gradient-to-br from-[#008770] to-[#005c4c]">
+                                RJ
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-bold text-[#1A2232] text-sm">Verão no Rio</h4>
+                                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 font-medium">
+                                    <i className="fa-regular fa-calendar text-[10px]"></i>
+                                    <span>15 Dez - 22 Dez</span>
+                                </div>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+                                <i className="fa-solid fa-chevron-right text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <BottomNav isPartner={false} />
+                </div>
+            );
+
+            // Tela Nova: Busca/Descobrir Roteiros
+            const ScreenSearch = () => (
+                <div className="flex-1 flex flex-col bg-[#F8FAFC] fade-in overflow-hidden">
+                    <Header title="Descobrir" subtitle="Explore roteiros montados pela comunidade" showBack={false} />
+                    
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {/* Barra de Pesquisa */}
+                        <div className="relative mb-8">
+                            <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input 
+                                type="text" 
+                                placeholder="Buscar destinos, estilos..." 
+                                className="w-full pl-11 pr-4 py-3.5 bg-white shadow-sm border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#008770] transition-all"
+                            />
+                        </div>
+
+                        <h3 className="font-bold text-[#1A2232] text-lg mb-4">Roteiros em Destaque</h3>
+
+                        <div className="space-y-5">
+                            {/* Card Roteiro 1 */}
+                            <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer transition-transform active:scale-95">
+                                <div className="h-32 w-full relative bg-gradient-to-br from-indigo-500 to-purple-600">
+                                    <div className="absolute inset-0 bg-black/20"></div>
+                                    <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 text-white text-xs font-bold">
+                                        <i className="fa-solid fa-star text-yellow-400 text-[10px]"></i> 4.9
+                                    </div>
+                                    <div className="absolute bottom-3 left-4">
+                                        <span className="bg-white text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-md mb-1 inline-block">5 DIAS</span>
+                                        <h4 className="font-bold text-white text-lg leading-tight">Inverno em Gramado</h4>
+                                    </div>
+                                </div>
+                                <div className="p-4">
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md"><i className="fa-solid fa-utensils"></i> Gastronomia</span>
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md"><i className="fa-solid fa-wine-glass"></i> Vinhos</span>
+                                        <span className="text-[10px] font-bold text-[#008770] bg-teal-50 border border-teal-100 px-2 py-1 rounded-md"><i className="fa-solid fa-wand-magic-sparkles"></i> Gerado por IA</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card Roteiro 2 */}
+                            <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer transition-transform active:scale-95">
+                                <div className="h-32 w-full relative bg-gradient-to-br from-teal-500 to-[#008770]">
+                                    <div className="absolute inset-0 bg-black/20"></div>
+                                    <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-lg flex items-center gap-1 text-white text-xs font-bold">
+                                        <i className="fa-solid fa-star text-yellow-400 text-[10px]"></i> 4.8
+                                    </div>
+                                    <div className="absolute bottom-3 left-4">
+                                        <span className="bg-white text-[#008770] text-[10px] font-bold px-2 py-1 rounded-md mb-1 inline-block">4 DIAS</span>
+                                        <h4 className="font-bold text-white text-lg leading-tight">Aventura em Bonito</h4>
+                                    </div>
+                                </div>
+                                <div className="p-4">
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md"><i className="fa-solid fa-person-hiking"></i> Ecoturismo</span>
+                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md"><i className="fa-solid fa-water"></i> Natureza</span>
+                                        <span className="text-[10px] font-bold text-[#008770] bg-teal-50 border border-teal-100 px-2 py-1 rounded-md"><i className="fa-solid fa-wand-magic-sparkles"></i> Gerado por IA</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <BottomNav isPartner={false} />
+                </div>
+            );
+
+            // Tela Nova: Perfil do Usuário
+            const ScreenProfile = () => {
+                const [ritmo, setRitmo] = useState('moderado');
+                const [interesses, setInteresses] = useState(['gastronomia', 'praia']);
+
+                const toggleInteresse = (item) => {
+                    if (interesses.includes(item)) {
+                        setInteresses(interesses.filter(i => i !== item));
+                    } else {
+                        setInteresses([...interesses, item]);
+                    }
+                };
+
+                const chips = [
+                    { id: 'gastronomia', label: 'Gastronomia', icon: 'fa-utensils' },
+                    { id: 'praia', label: 'Praias', icon: 'fa-umbrella-beach' },
+                    { id: 'cultura', label: 'Cultura', icon: 'fa-landmark' },
+                    { id: 'aventura', label: 'Aventura', icon: 'fa-person-hiking' },
+                    { id: 'compras', label: 'Compras', icon: 'fa-bag-shopping' },
+                    { id: 'noite', label: 'Vida Noturna', icon: 'fa-martini-glass' }
+                ];
+
+                return (
+                    <div className="flex-1 flex flex-col bg-white fade-in overflow-hidden">
+                        <Header title="Meu Perfil" subtitle="Gerencie seus dados e preferências" showBack={false} />
+                        
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {/* Avatar e Infos Básicas */}
+                            <div className="flex flex-col items-center mb-8">
+                                <div className="relative mb-4">
+                                    <div className="w-24 h-24 bg-gradient-to-br from-[#008770] to-[#005c4c] rounded-full flex items-center justify-center border-4 border-white shadow-md">
+                                        <span className="text-white font-bold text-4xl">F</span>
+                                    </div>
+                                    <button className="absolute bottom-0 right-0 w-8 h-8 bg-[#1A2232] text-white rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                                        <i className="fa-solid fa-pen text-xs"></i>
+                                    </button>
+                                </div>
+                                <h2 className="text-xl font-bold text-[#1A2232]">Fulano</h2>
+                                <p className="text-sm text-gray-500">Viajante Frequente</p>
+                            </div>
+
+                            {/* Formulário Dados */}
+                            <div className="space-y-4 mb-8">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nome Completo</label>
+                                    <input type="text" defaultValue="Fulano" className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-bold text-[#1A2232] focus:border-[#008770] focus:outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">E-mail</label>
+                                    <input type="email" defaultValue="fulano@email.com" className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-medium text-[#1A2232] focus:border-[#008770] focus:outline-none" />
+                                </div>
+                            </div>
+
+                            <hr className="border-gray-100 mb-8" />
+
+                            {/* Preferências Globais */}
+                            <div className="mb-4">
+                                <h3 className="font-bold text-[#1A2232] text-lg mb-1">Preferências de Viagem</h3>
+                                <p className="text-xs text-gray-500 mb-6">A IA usará esses dados por padrão nos seus roteiros.</p>
+
+                                <label className="block text-sm font-bold text-[#1A2232] mb-3">Seu ritmo ideal:</label>
+                                <div className="flex bg-[#F8FAFC] p-1.5 rounded-2xl border border-gray-100 mb-6">
+                                    {['Relaxado', 'Moderado', 'Intenso'].map((r) => {
+                                        const isSelected = r.toLowerCase() === ritmo;
+                                        return (
+                                            <button
+                                                key={r}
+                                                onClick={() => setRitmo(r.toLowerCase())}
+                                                className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${isSelected ? 'bg-white shadow-sm text-[#008770]' : 'text-gray-400'}`}
+                                            >
+                                                {r}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+
+                                <label className="block text-sm font-bold text-[#1A2232] mb-3">Interesses Favoritos:</label>
+                                <div className="flex flex-wrap gap-2.5 mb-6">
+                                    {chips.map(chip => {
+                                        const isSelected = interesses.includes(chip.id);
+                                        return (
+                                            <button
+                                                key={chip.id}
+                                                onClick={() => toggleInteresse(chip.id)}
+                                                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                                                    isSelected 
+                                                        ? 'bg-teal-50 text-[#008770] border-[#008770]' 
+                                                        : 'bg-white text-gray-500 border-gray-200'
+                                                }`}
+                                            >
+                                                <i className={`fa-solid ${chip.icon}`}></i> {chip.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-50 bg-white shrink-0 z-10">
+                            <button className="w-full py-4 rounded-2xl text-white font-bold text-sm flex justify-center items-center gap-2 shadow-md transition-transform active:scale-95" style={{ backgroundColor: COLORS.primary }}>
+                                Salvar Perfil
+                            </button>
+                        </div>
+                        <BottomNav isPartner={false} />
+                    </div>
+                );
+            };
+
+            // Tela 4: Detalhes do Roteiro
+            const ScreenItinerary = () => (
+                <div className="flex-1 flex flex-col bg-white fade-in overflow-hidden">
+                    <Header title="Verão no Rio" subtitle="15 a 22 de Dezembro" onBack={() => setCurrentScreen('travelerFeed')} />
+                    
+                    {/* Imagem Simulada Transformada em Fundo Colorido */}
+                    <div className="w-full h-44 relative overflow-hidden bg-gradient-to-br from-[#008770] to-[#1A2232] shrink-0">
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        <div className="absolute bottom-4 left-6 right-6 flex justify-between items-end">
+                            <div>
+                                <span className="bg-white text-[#008770] text-[10px] font-bold px-2 py-1 rounded-md mb-2 inline-block">7 DIAS</span>
+                                <div className="font-bold text-white text-xl">Rio de Janeiro</div>
+                            </div>
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-sm">
+                                <i className="fa-solid fa-share-nodes"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 pb-24">
+                        {/* Dia 1 */}
+                        <div className="mb-8">
+                            <h3 className="font-bold text-base mb-5 flex items-center gap-2" style={{ color: COLORS.secondary }}>
+                                <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-[#008770] text-sm">1</div>
+                                Chegada e Praia
+                            </h3>
+                            
+                            <div className="pl-5 border-l-[3px] border-gray-100 relative mb-6 ml-4">
+                                <div className="absolute w-4 h-4 bg-white border-[3px] border-gray-300 rounded-full -left-[10px] top-0"></div>
+                                <div className="text-xs font-bold text-[#008770] mb-1">14:00</div>
+                                <div className="text-sm font-bold text-[#1A2232]">Check-in no Hotel</div>
+                                <div className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-1">
+                                    <i className="fa-solid fa-bed text-[10px]"></i> Copacabana Palace
+                                </div>
+                            </div>
+
+                            <div className="pl-5 border-l-[3px] border-gray-100 relative mb-6 ml-4">
+                                <div className="absolute w-4 h-4 bg-white border-[3px] border-[#008770] rounded-full -left-[10px] top-0 shadow-[0_0_0_3px_rgba(0,135,112,0.2)]"></div>
+                                <div className="text-xs font-bold text-[#008770] mb-1">19:00</div>
+                                <div className="text-sm font-bold text-[#1A2232]">Jantar Especial</div>
+                                <div className="text-xs text-gray-500 font-medium mt-1 flex items-center gap-1">
+                                    <i className="fa-solid fa-utensils text-[10px]"></i> Restaurante Sabor Carioca
+                                </div>
+                                <div className="mt-2 bg-teal-50 border border-teal-100 text-[#008770] text-[10px] font-bold px-2 py-1 rounded-md inline-flex items-center gap-1">
+                                    <i className="fa-solid fa-star"></i> Parceiro Recomendado
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-50 rounded-b-[40px]">
+                        <button className="w-full py-4 rounded-2xl text-white font-semibold text-sm flex justify-center items-center gap-2 shadow-md transition-transform active:scale-95" style={{ backgroundColor: COLORS.secondary }}>
+                            <i className="fa-solid fa-map-location-dot"></i> Iniciar Rota no Mapa
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // Tela 5: Planejamento (Básico)
+            const ScreenPlanBasic = () => (
+                <div className="flex-1 flex flex-col bg-white fade-in overflow-hidden">
+                    <Header title="Nova Viagem" subtitle="Passo 1 de 2: Dados Básicos" onBack={() => setCurrentScreen('travelerFeed')} />
+                    
+                    <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                        <div className="flex gap-2 mb-2">
+                            <div className="h-1.5 flex-1 bg-[#008770] rounded-full"></div>
+                            <div className="h-1.5 flex-1 bg-gray-100 rounded-full"></div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-[#1A2232] mb-2 uppercase tracking-wide">Para onde vamos?</label>
+                            <div className="relative">
+                                <i className="fa-solid fa-location-dot absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input 
+                                    type="text" 
+                                    placeholder="Ex: Salvador, Bahia" 
+                                    className="w-full pl-10 pr-4 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#008770] focus:ring-1 focus:ring-[#008770] transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-[#1A2232] mb-2 uppercase tracking-wide">Ida</label>
+                                <div className="relative">
+                                    <input type="date" className="w-full px-3 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 focus:outline-none focus:border-[#008770]" />
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-[#1A2232] mb-2 uppercase tracking-wide">Volta</label>
+                                <div className="relative">
+                                    <input type="date" className="w-full px-3 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 focus:outline-none focus:border-[#008770]" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-[#1A2232] mb-2 uppercase tracking-wide">Orçamento (R$)</label>
+                            <div className="relative">
+                                <i className="fa-solid fa-wallet absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                <input 
+                                    type="number" 
+                                    placeholder="Ex: 3500" 
+                                    className="w-full pl-10 pr-4 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-[#008770]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 border-t border-gray-50 bg-white shrink-0">
+                        <button 
+                            onClick={() => setCurrentScreen('planPrefs')}
+                            className="w-full py-4 rounded-2xl text-white font-bold text-sm flex justify-center items-center gap-2 shadow-md transition-transform active:scale-95" 
+                            style={{ backgroundColor: COLORS.primary }}
+                        >
+                            Avançar para Preferências <i className="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // Tela 6: Planejamento (Preferências da Viagem Específica)
+            const ScreenPlanPrefs = () => {
+                const [ritmo, setRitmo] = useState('moderado');
+                const [interesses, setInteresses] = useState(['gastronomia', 'praia']);
+
+                const toggleInteresse = (item) => {
+                    if (interesses.includes(item)) {
+                        setInteresses(interesses.filter(i => i !== item));
+                    } else {
+                        setInteresses([...interesses, item]);
+                    }
+                };
+
+                const chips = [
+                    { id: 'gastronomia', label: 'Gastronomia', icon: 'fa-utensils' },
+                    { id: 'praia', label: 'Praias', icon: 'fa-umbrella-beach' },
+                    { id: 'cultura', label: 'Cultura', icon: 'fa-landmark' },
+                    { id: 'aventura', label: 'Aventura', icon: 'fa-person-hiking' },
+                    { id: 'compras', label: 'Compras', icon: 'fa-bag-shopping' },
+                    { id: 'noite', label: 'Vida Noturna', icon: 'fa-martini-glass' }
+                ];
+
+                return (
+                    <div className="flex-1 flex flex-col bg-white fade-in overflow-hidden">
+                        <Header title="Ajustes Finais" subtitle="Passo 2 de 2: Para esta viagem" onBack={() => setCurrentScreen('planBasic')} />
+                        
+                        <div className="flex-1 p-6 overflow-y-auto">
+                            <div className="flex gap-2 mb-6">
+                                <div className="h-1.5 flex-1 bg-[#008770] rounded-full"></div>
+                                <div className="h-1.5 flex-1 bg-[#008770] rounded-full"></div>
+                            </div>
+
+                            <div className="bg-teal-50 border border-teal-100 p-4 rounded-2xl mb-8 flex gap-3 items-center">
+                                <i className="fa-solid fa-circle-info text-[#008770]"></i>
+                                <p className="text-xs text-teal-800 font-medium">Carregamos suas preferências do perfil. Pode ajustá-las apenas para este roteiro.</p>
+                            </div>
+
+                            <div className="mb-10">
+                                <label className="block text-sm font-bold text-[#1A2232] mb-4">Ritmo desta viagem:</label>
+                                <div className="flex bg-[#F8FAFC] p-1.5 rounded-2xl border border-gray-100">
+                                    {['Relaxado', 'Moderado', 'Intenso'].map((r) => {
+                                        const isSelected = r.toLowerCase() === ritmo;
+                                        return (
+                                            <button
+                                                key={r}
+                                                onClick={() => setRitmo(r.toLowerCase())}
+                                                className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${isSelected ? 'bg-white shadow-sm text-[#008770]' : 'text-gray-400'}`}
+                                            >
+                                                {r}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-[#1A2232] mb-4">Interesses específicos:</label>
+                                <div className="flex flex-wrap gap-2.5">
+                                    {chips.map(chip => {
+                                        const isSelected = interesses.includes(chip.id);
+                                        return (
+                                            <button
+                                                key={chip.id}
+                                                onClick={() => toggleInteresse(chip.id)}
+                                                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                                                    isSelected 
+                                                        ? 'bg-teal-50 text-[#008770] border-[#008770]' 
+                                                        : 'bg-white text-gray-500 border-gray-200'
+                                                }`}
+                                            >
+                                                <i className={`fa-solid ${chip.icon}`}></i> {chip.label}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-gray-50 bg-white shrink-0">
+                            <button 
+                                onClick={() => setCurrentScreen('chatAI')}
+                                className="w-full py-4 rounded-2xl text-white font-bold text-sm flex justify-center items-center gap-2 shadow-lg transition-transform active:scale-95 bg-gradient-to-r from-[#008770] to-[#006B59]" 
+                            >
+                                <i className="fa-solid fa-wand-magic-sparkles"></i> Gerar Roteiro com IA
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Tela 6.5: Chat IA
+            const ScreenChatAI = () => (
+                <div className="flex-1 flex flex-col bg-[#F8FAFC] fade-in overflow-hidden">
+                    <Header title="Assistente Gemini" subtitle="Montando seu roteiro" onBack={() => setCurrentScreen('planPrefs')} />
+                    
+                    <div className="flex-1 p-5 flex flex-col gap-6 overflow-y-auto">
+                        <div className="flex gap-3 max-w-[90%]">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                                <i className="fa-solid fa-sparkles text-xs"></i>
+                            </div>
+                            <div className="bg-white p-4 rounded-3xl rounded-tl-sm shadow-sm text-sm text-[#1A2232] font-medium leading-relaxed border border-gray-100">
+                                Estou analisando suas preferências para o Rio de Janeiro. Criando um roteiro com ritmo moderado, focado em <strong className="text-[#008770]">Praias</strong> e <strong className="text-[#008770]">Gastronomia</strong>...
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 max-w-[90%] self-end flex-row-reverse">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm bg-[#1A2232]">
+                                <span className="font-bold text-sm">F</span>
+                            </div>
+                            <div className="p-4 rounded-3xl rounded-tr-sm shadow-sm text-sm text-white font-medium leading-relaxed" style={{ backgroundColor: COLORS.primary }}>
+                                Tente incluir locais parceiros próximos às praias.
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 max-w-[90%] fade-in" style={{animationDelay: '0.5s'}}>
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                                <i className="fa-solid fa-sparkles text-xs"></i>
+                            </div>
+                            <div className="bg-white p-4 rounded-3xl rounded-tl-sm shadow-sm text-sm text-[#1A2232] font-medium leading-relaxed border border-gray-100">
+                                Perfeito! Adicionei o <strong className="text-[#1A2232]">Sabor Carioca</strong> para o jantar do dia 1. É um parceiro premium com ótimas avaliações de frente para o mar.
+                                
+                                <button 
+                                    onClick={() => setCurrentScreen('itinerary')}
+                                    className="mt-4 w-full py-3 bg-teal-50 text-[#008770] rounded-xl font-bold border border-teal-100 flex justify-center items-center gap-2 transition-transform active:scale-95"
+                                >
+                                    <i className="fa-solid fa-map"></i> Ver roteiro completo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 bg-white border-t border-gray-100 flex gap-3 items-center shrink-0">
+                        <div className="flex-1 relative">
+                            <input type="text" placeholder="Peça ajustes no roteiro..." className="w-full p-3.5 pl-4 bg-[#F8FAFC] border border-gray-200 rounded-full text-sm font-medium outline-none focus:border-[#008770]" readOnly />
+                        </div>
+                        <button className="w-12 h-12 rounded-full text-white flex items-center justify-center shadow-md bg-[#008770] shrink-0">
+                            <i className="fa-solid fa-arrow-up"></i>
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // Telas de Parceiro (Mantidas)
+            const ScreenPartnerDashboard = () => (
+                <div className="flex-1 flex flex-col bg-[#F8FAFC] fade-in overflow-hidden">
+                    <div className="px-6 pt-16 pb-8 bg-[#1A2232] rounded-b-[40px] shadow-lg z-10 shrink-0">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">Seu Dashboard</h2>
+                                <p className="text-gray-300 text-sm mt-1 flex items-center gap-1">
+                                    <i className="fa-solid fa-store text-[10px]"></i> Sabor Carioca
+                                </p>
+                            </div>
+                            <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
+                                <i className="fa-regular fa-bell text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="flex gap-4 mb-6">
+                            <div className="flex-1 bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+                                <span className="text-4xl font-black text-[#1A2232] mb-1">12</span>
+                                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Visitas Hoje</span>
+                            </div>
+                            <div className="flex-1 bg-white p-5 rounded-3xl shadow-md border border-teal-100 flex flex-col items-center justify-center relative overflow-hidden">
+                                <div className="absolute top-0 w-full h-1 bg-[#008770]"></div>
+                                <span className="text-4xl font-black text-[#008770] mb-1">314</span>
+                                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Em Roteiros</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-bold text-sm text-[#1A2232] mb-5">Inclusões por tipo de Roteiro</h3>
+                            
+                            <div className="mb-5">
+                                <div className="flex justify-between text-xs mb-2 font-bold text-gray-600">
+                                    <span><i className="fa-solid fa-utensils mr-1 text-[#008770]"></i> Gastronomia</span>
+                                    <span className="text-[#1A2232]">63%</span>
+                                </div>
+                                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-[#008770] rounded-full" style={{ width: '63%' }}></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-xs mb-2 font-bold text-gray-600">
+                                    <span><i className="fa-solid fa-umbrella-beach mr-1 text-blue-500"></i> Praias</span>
+                                    <span className="text-[#1A2232]">23%</span>
+                                </div>
+                                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: '23%' }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <BottomNav isPartner={true} />
+                </div>
+            );
+
+            const ScreenPartnerManage = () => (
+                <div className="flex-1 flex flex-col bg-white fade-in overflow-hidden">
+                    <Header title="Gerenciar Local" subtitle="Configurações do Estabelecimento" showBack={false} />
+                    
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="bg-teal-50 border border-teal-200 p-4 rounded-2xl mb-8 flex items-start gap-3">
+                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#008770] shadow-sm shrink-0">
+                                <i className="fa-solid fa-crown text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 className="text-[#008770] font-bold text-sm mb-1">Plano Premium Ativo</h4>
+                                <p className="text-xs text-teal-800 font-medium leading-relaxed">Seu local tem prioridade nas recomendações da IA para roteiros no Rio de Janeiro.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-5">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Nome do Estabelecimento</label>
+                                <input type="text" value="Restaurante Sabor Carioca" readOnly className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-bold text-[#1A2232]" />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Descrição para a IA</label>
+                                <textarea 
+                                    rows="4" 
+                                    readOnly
+                                    className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-200 rounded-2xl text-sm font-medium text-[#1A2232] resize-none leading-relaxed"
+                                    defaultValue="A melhor feijoada da orla. Ambiente familiar, música ao vivo aos finais de semana e vista para o mar."
+                                ></textarea>
+                            </div>
+
+                            <button className="w-full py-3.5 rounded-2xl font-bold text-sm border-2 border-[#1A2232] text-[#1A2232] flex justify-center items-center gap-2 hover:bg-gray-50 transition-colors">
+                                <i className="fa-solid fa-wand-magic-sparkles"></i> Melhorar descrição com Gemini
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="p-6 border-t border-gray-50 shrink-0">
+                        <button className="w-full py-4 rounded-2xl text-white font-bold text-sm shadow-md transition-transform active:scale-95" style={{ backgroundColor: COLORS.primary }}>
+                            Salvar Alterações
+                        </button>
+                    </div>
+
+                    <BottomNav isPartner={true} />
+                </div>
+            );
+
+            return (
+                <PhoneFrame>
+                    {currentScreen === 'splash' && <ScreenSplash />}
+                    {currentScreen === 'profileSelect' && <ScreenProfileSelect />}
+                    {currentScreen === 'travelerFeed' && <ScreenTravelerFeed />}
+                    {currentScreen === 'search' && <ScreenSearch />}
+                    {currentScreen === 'profile' && <ScreenProfile />}
+                    {currentScreen === 'itinerary' && <ScreenItinerary />}
+                    {currentScreen === 'planBasic' && <ScreenPlanBasic />}
+                    {currentScreen === 'planPrefs' && <ScreenPlanPrefs />}
+                    {currentScreen === 'chatAI' && <ScreenChatAI />}
+                    {currentScreen === 'partnerDashboard' && <ScreenPartnerDashboard />}
+                    {currentScreen === 'partnerManage' && <ScreenPartnerManage />}
+                </PhoneFrame>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<WanderlustApp />);
+    </script>
+</body>
+</html>
